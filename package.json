@@ -1,0 +1,26 @@
+{
+  "name": "bfm-podcast-art-regeneration",
+  "version": "1.0.0",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "test": "node src/index.js --station-id 2 --batch-size 5 --dry-run",
+    "production": "node src/index.js --station-id 1",
+    "resume": "node src/index.js --resume",
+    "reset": "node src/index.js --reset"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "Regenerate podcast episode artwork from media files using AzuraCast API",
+  "bin": {
+    "podcast-art-regenerator": "./src/index.js"
+  },
+  "dependencies": {
+    "axios": "^1.10.0",
+    "chalk": "^4.1.2",
+    "commander": "^14.0.0",
+    "dotenv": "^16.5.0",
+    "form-data": "^4.0.3"
+  }
+}

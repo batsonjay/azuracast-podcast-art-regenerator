@@ -21,26 +21,57 @@ class ProgressTracker {
    * @returns {Promise<void>}
    */
   async initialize(stationId, podcastId, batchSize = 50) {
-    this.progress = {
-      metadata: {
-        stationId,
-        podcastId,
-        batchSize,
-        totalEpisodes: 0,
-        processedEpisodes: 0,
-        successCount: 0,
-        failureCount: 0,
-        skippedCount: 0,
-        currentPage: 1,
-        startedAt: new Date().toISOString(),
-        lastProcessedAt: null,
-        isComplete: false
-      },
-      episodes: {}
-    };
+    // Try to load existing progress first
+    const existingLoaded = await this.load();
+    
+    if (existingLoaded && this.progress) {
+      // Merge with existing progress - only update what's necessary
+      const existingEpisodes = this.progress.episodes || {};
+      const existingMetadata = this.progress.metadata || {};
+      
+      this.progress = {
+        metadata: {
+          stationId,
+          podcastId,
+          batchSize,
+          totalEpisodes: existingMetadata.totalEpisodes || 0,
+          processedEpisodes: existingMetadata.processedEpisodes || 0,
+          successCount: existingMetadata.successCount || 0,
+          failureCount: existingMetadata.failureCount || 0,
+          skippedCount: existingMetadata.skippedCount || 0,
+          currentPage: existingMetadata.currentPage || 1,
+          startedAt: existingMetadata.startedAt || new Date().toISOString(),
+          lastProcessedAt: existingMetadata.lastProcessedAt || null,
+          isComplete: existingMetadata.isComplete || false
+        },
+        episodes: existingEpisodes
+      };
+      
+      this.logger.verbose(`Progress tracking initialized with existing data: ${this.progress.metadata.processedEpisodes} episodes already processed`);
+    } else {
+      // Create new progress if no existing data
+      this.progress = {
+        metadata: {
+          stationId,
+          podcastId,
+          batchSize,
+          totalEpisodes: 0,
+          processedEpisodes: 0,
+          successCount: 0,
+          failureCount: 0,
+          skippedCount: 0,
+          currentPage: 1,
+          startedAt: new Date().toISOString(),
+          lastProcessedAt: null,
+          isComplete: false
+        },
+        episodes: {}
+      };
+      
+      this.logger.verbose('Progress tracking initialized with new data');
+    }
 
     await this.save();
-    this.logger.verbose('Progress tracking initialized');
   }
 
   /**

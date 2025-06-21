@@ -9,6 +9,7 @@ const Logger = require('./utils/logger');
 const { config, getStationConfig, validateConfig } = require('./utils/config');
 const ApiClient = require('./api/client');
 const ProgressTracker = require('./services/progress');
+const EpisodeDatabase = require('./services/episodeDatabase');
 const PodcastService = require('./services/podcast');
 
 // Initialize CLI
@@ -27,14 +28,41 @@ program
   .option('-r, --resume', 'Resume from saved progress', false)
   .option('--reset', 'Reset progress and start fresh', false)
   .option('-v, --verbose', 'Enable verbose logging', false)
-  .option('--force', 'Process episodes even if they already have custom art', false);
+  .option('--force', 'Process episodes even if they already have custom art', false)
+  .option('--search-title <string>', 'Search for and process a single episode by title substring');
+
+/**
+ * Prompt user for confirmation to process a found episode
+ * @param {Object} episode - Episode object
+ * @returns {Promise<boolean>} True if user confirms processing
+ */
+async function promptEpisodeConfirmation(episode) {
+  const readline = require('readline');
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout
+  });
+
+  return new Promise((resolve) => {
+    console.log(`\n🎯 Found episode: "${episode.title}"`);
+    console.log(`📅 Published: ${episode.publish_at || 'Unknown'}`);
+    console.log(`🆔 Episode ID: ${episode.id}`);
+    
+    rl.question('\nProcess this episode? (y/n): ', (answer) => {
+      rl.close();
+      const choice = answer.toLowerCase().trim();
+      resolve(choice === 'y' || choice === 'yes');
+    });
+  });
+}
 
 /**
  * Prompt user for batch continuation and batch size
  * @param {Object} batchInfo - Batch completion information
+ * @param {number} currentBatchSize - Current batch size to use as default
  * @returns {Promise<Object>} Object with continue flag and optional new batch size
  */
-async function promptBatchContinuation(batchInfo) {
+async function promptBatchContinuation(batchInfo, currentBatchSize = 50) {
   const readline = require('readline');
   const rl = readline.createInterface({
     input: process.stdin,
@@ -48,10 +76,10 @@ async function promptBatchContinuation(batchInfo) {
       console.log(`📄 First batch will process ${batchInfo.episodesToProcess} episodes`);
       
       // Ask for batch size for the first batch
-      rl.question('\nHow many episodes for first batch? (default: 50): ', (batchSizeAnswer) => {
+      rl.question(`\nHow many episodes for first batch? (default: ${currentBatchSize}): `, (batchSizeAnswer) => {
         rl.close();
         
-        let newBatchSize = 50; // default
+        let newBatchSize = currentBatchSize; // use command-line batch size as default
         const inputBatchSize = parseInt(batchSizeAnswer.trim());
         
         if (!isNaN(inputBatchSize) && inputBatchSize > 0) {
@@ -92,10 +120,10 @@ async function promptBatchContinuation(batchInfo) {
         resolve({ continue: false });
       } else {
         // Ask for batch size for next batch
-        rl.question('\nHow many episodes for next batch? (default: 50): ', (batchSizeAnswer) => {
+        rl.question(`\nHow many episodes for next batch? (default: ${currentBatchSize}): `, (batchSizeAnswer) => {
           rl.close();
           
-          let newBatchSize = 50; // default
+          let newBatchSize = currentBatchSize; // use current batch size as default
           const inputBatchSize = parseInt(batchSizeAnswer.trim());
           
           if (!isNaN(inputBatchSize) && inputBatchSize > 0) {
@@ -144,7 +172,8 @@ async function main() {
     // Initialize services
     const apiClient = new ApiClient(logger);
     const progressTracker = new ProgressTracker(logger);
-    const podcastService = new PodcastService(apiClient, progressTracker, logger);
+    const episodeDatabase = new EpisodeDatabase(logger);
+    const podcastService = new PodcastService(apiClient, progressTracker, episodeDatabase, logger);
     
     // Test API connection
     logger.progress('Testing API connection...');
@@ -155,9 +184,13 @@ async function main() {
     }
     logger.success('API connection successful');
     
+    // Initialize episode database
+    await episodeDatabase.initialize();
+    
     // Handle reset option
     if (options.reset) {
       await progressTracker.reset();
+      await episodeDatabase.clearAll();
     }
     
     // Always try to load existing progress first
@@ -192,34 +225,113 @@ async function main() {
     const podcastId = resumeInfo ? resumeInfo.podcastId : stationConfig.podcastId;
     
     logger.separator();
-    logger.info(`Starting processing from page ${actualStartPage}`);
     
-    // Process all episodes
-    const results = await podcastService.processAllEpisodes(
-      stationId,
-      podcastId,
-      batchSize,
-      actualStartPage,
-      options.dryRun,
-      options.force,
-      promptBatchContinuation
-    );
-    
-    // Show final results
-    logger.separator();
-    logger.success('Processing completed!');
-    logger.stats({
-      total: results.processed,
-      success: results.success,
-      failed: results.failed,
-      skipped: results.skipped
-    });
-    
-    // Show failed episodes if any
-    const failedEpisodes = progressTracker.getFailedEpisodes();
-    if (failedEpisodes.length > 0) {
-      logger.warning(`${failedEpisodes.length} episodes failed to process`);
-      logger.info('Use --verbose flag to see detailed error information');
+    // Check if this is a search operation
+    if (options.searchTitle) {
+      logger.info(`Searching for episode with title containing: "${options.searchTitle}"`);
+      
+      // Search for episodes
+      const matchingEpisodes = await podcastService.searchEpisodesByTitle(
+        stationId,
+        podcastId,
+        options.searchTitle
+      );
+      
+      if (matchingEpisodes.length === 0) {
+        logger.warning(`No episodes found containing: "${options.searchTitle}"`);
+        process.exit(0);
+      }
+      
+      logger.success(`Found ${matchingEpisodes.length} matching episode(s)`);
+      
+      // Process each matching episode
+      let processedCount = 0;
+      let successCount = 0;
+      let failedCount = 0;
+      let skippedCount = 0;
+      
+      for (const episode of matchingEpisodes) {
+        // Ask for confirmation
+        const shouldProcess = await promptEpisodeConfirmation(episode);
+        
+        if (!shouldProcess) {
+          logger.info('Skipping episode');
+          skippedCount++;
+          continue;
+        }
+        
+        // Initialize minimal progress tracking for individual episode
+        if (!resumeInfo) {
+          await progressTracker.initialize(stationId, podcastId, 1);
+        }
+        
+        // Process the episode
+        logger.info(`Processing episode: "${episode.title}"`);
+        const status = await podcastService.processEpisode(
+          stationId,
+          podcastId,
+          episode,
+          options.dryRun,
+          options.force
+        );
+        
+        processedCount++;
+        if (status === 'success') {
+          successCount++;
+          logger.success(`Episode processed successfully`);
+        } else if (status === 'failed') {
+          failedCount++;
+          logger.error(`Episode processing failed`);
+        } else {
+          skippedCount++;
+          logger.info(`Episode was skipped`);
+        }
+        
+        // Save progress after processing
+        await progressTracker.save();
+      }
+      
+      // Show final results for search
+      logger.separator();
+      logger.success('Search and processing completed!');
+      logger.stats({
+        total: processedCount,
+        success: successCount,
+        failed: failedCount,
+        skipped: skippedCount
+      });
+      
+    } else {
+      // Regular batch processing mode
+      logger.info(`Starting processing from page ${actualStartPage}`);
+      
+      // Process all episodes
+      const results = await podcastService.processAllEpisodes(
+        stationId,
+        podcastId,
+        batchSize,
+        actualStartPage,
+        options.dryRun,
+        options.force,
+        (batchInfo) => promptBatchContinuation(batchInfo, batchSize)
+      );
+      
+      // Show final results
+      logger.separator();
+      logger.success('Processing completed!');
+      logger.stats({
+        total: results.processed,
+        success: results.success,
+        failed: results.failed,
+        skipped: results.skipped
+      });
+      
+      // Show failed episodes if any
+      const failedEpisodes = progressTracker.getFailedEpisodes();
+      if (failedEpisodes.length > 0) {
+        logger.warning(`${failedEpisodes.length} episodes failed to process`);
+        logger.info('Use --verbose flag to see detailed error information');
+      }
     }
     
   } catch (error) {

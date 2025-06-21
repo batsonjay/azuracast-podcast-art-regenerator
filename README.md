@@ -115,6 +115,7 @@ node src/index.js --station-id 1 --batch-size 5 --dry-run
 | `--reset` | Reset progress and start fresh | false | `--reset` |
 | `-v, --verbose` | Enable verbose logging | false | `--verbose` |
 | `--force` | Process episodes even if they have custom art | false | `--force` |
+| `--search-title <string>` | Search for and process a single episode by title substring | none | `--search-title "Episode 100"` |
 
 ### Help
 
@@ -156,6 +157,22 @@ node src/index.js --station-id 1 --force
 node src/index.js --station-id 1 --batch-size 3 --dry-run --verbose
 ```
 
+### Episode Search and Individual Processing
+
+```bash
+# Search for episodes containing "Episode 100" in the title
+node src/index.js --station-id 1 --search-title "Episode 100"
+
+# Search with dry run to test without uploading
+node src/index.js --station-id 1 --search-title "Christmas Special" --dry-run
+
+# Search with verbose logging for detailed output
+node src/index.js --station-id 1 --search-title "Interview" --verbose
+
+# Search and force processing even if episode has artwork
+node src/index.js --station-id 1 --search-title "Bonus" --force
+```
+
 ## Interactive Prompts
 
 The application provides interactive prompts during execution:
@@ -180,6 +197,15 @@ Continue? (y)es, (n)o, (p)ause:
 ### Batch Size Prompt
 ```
 How many episodes for next batch? (default: 50): 
+```
+
+### Episode Search Confirmation Prompt
+```
+🎯 Found episode: "Episode 100 - Special Interview"
+📅 Published: 2023-12-01T10:00:00Z
+🆔 Episode ID: abc123-def456-ghi789
+
+Process this episode? (y/n): 
 ```
 
 ## Progress Tracking
@@ -359,6 +385,12 @@ For issues and questions:
 4. **Create GitHub issue** with detailed error information
 
 ## Version History
+
+- **v1.1.0**: Added episode search functionality
+  - New `--search-title` option for finding episodes by title substring
+  - Individual episode processing with confirmation prompts
+  - Search across all episodes with progress indicators
+  - Compatible with existing dry-run, verbose, and force options
 
 - **v1.0.0**: Initial release with full artwork recovery functionality
   - Batch processing with user prompts

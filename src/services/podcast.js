@@ -5,9 +5,10 @@
 const { getStationConfig } = require('../utils/config');
 
 class PodcastService {
-  constructor(apiClient, progressTracker, logger) {
+  constructor(apiClient, progressTracker, episodeDatabase, logger) {
     this.api = apiClient;
     this.progress = progressTracker;
+    this.episodeDb = episodeDatabase;
     this.logger = logger;
   }
 
@@ -30,6 +31,7 @@ class PodcastService {
         const error = 'No playlist_media_id found';
         console.log(` (failed; ${error})`);
         this.progress.recordEpisode(episodeId, mediaUniqueId, 'failed', error);
+        await this.episodeDb.addEpisode(episodeId, mediaUniqueId, 'failed', error, episode.title);
         return 'failed';
       }
 
@@ -44,6 +46,7 @@ class PodcastService {
         const error = 'No artwork data received';
         this.logger.episodeResult(episode, 'failed', error);
         this.progress.recordEpisode(episodeId, mediaUniqueId, 'failed', error);
+        await this.episodeDb.addEpisode(episodeId, mediaUniqueId, 'failed', error, episode.title);
         return 'failed';
       }
 
@@ -64,6 +67,7 @@ class PodcastService {
           const error = uploadResult.message || 'Upload failed';
           this.logger.episodeResult(episode, 'failed', error);
           this.progress.recordEpisode(episodeId, mediaUniqueId, 'failed', error);
+          await this.episodeDb.addEpisode(episodeId, mediaUniqueId, 'failed', error, episode.title);
           return 'failed';
         }
       } else {
@@ -72,12 +76,14 @@ class PodcastService {
 
       this.logger.episodeResult(episode, 'success');
       this.progress.recordEpisode(episodeId, mediaUniqueId, 'success');
+      await this.episodeDb.addEpisode(episodeId, mediaUniqueId, 'success', null, episode.title);
       return 'success';
 
     } catch (error) {
       const errorMessage = error.message || 'Unknown error';
       this.logger.episodeResult(episode, 'failed', errorMessage);
       this.progress.recordEpisode(episodeId, mediaUniqueId, 'failed', errorMessage);
+      await this.episodeDb.addEpisode(episodeId, mediaUniqueId, 'failed', errorMessage, episode.title);
       return 'failed';
     }
   }
@@ -141,6 +147,60 @@ class PodcastService {
     
     this.logger.verbose(`Retrieved ${response.rows?.length || 0} episodes from page ${page}`);
     return response;
+  }
+
+  /**
+   * Search for episodes by title substring
+   * @param {number} stationId - Station ID
+   * @param {string} podcastId - Podcast ID
+   * @param {string} searchTerm - Substring to search for in episode titles
+   * @returns {Promise<Array>} Array of matching episodes
+   */
+  async searchEpisodesByTitle(stationId, podcastId, searchTerm) {
+    const matchingEpisodes = [];
+    const searchTermLower = searchTerm.toLowerCase();
+    let currentPage = 1;
+    const batchSize = 100; // Use larger batch size for searching
+    
+    this.logger.info(`Searching for episodes containing: "${searchTerm}"`);
+    
+    while (true) {
+      try {
+        // Get episodes for current page
+        const episodesResponse = await this.getEpisodesPage(stationId, podcastId, currentPage, batchSize);
+        
+        if (!episodesResponse.rows || episodesResponse.rows.length === 0) {
+          break;
+        }
+        
+        // Search through episodes in this page
+        for (const episode of episodesResponse.rows) {
+          const title = episode.title || '';
+          if (title.toLowerCase().includes(searchTermLower)) {
+            matchingEpisodes.push(episode);
+          }
+        }
+        
+        // Calculate total pages and check if we're done
+        const calculatedTotalPages = Math.ceil(episodesResponse.total / batchSize);
+        if (currentPage >= calculatedTotalPages) {
+          break;
+        }
+        
+        currentPage++;
+        
+        // Show progress for large searches
+        if (currentPage % 5 === 0) {
+          this.logger.progress(`Searched ${currentPage * batchSize} episodes...`);
+        }
+        
+      } catch (error) {
+        this.logger.error(`Error searching page ${currentPage}`, error);
+        break;
+      }
+    }
+    
+    return matchingEpisodes;
   }
 
   /**

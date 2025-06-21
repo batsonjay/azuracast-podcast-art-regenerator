@@ -66,7 +66,7 @@ This document summarizes the open-source preparation work completed for the Azur
 ## Additional Open Source Recommendations
 
 ### 🔄 GitHub Repository Setup
-1. **Create GitHub repository** at `https://github.com/jabventures/azuracast-podcast-art-regenerator`
+1. **Create GitHub repository** at `https://github.com/batsonjay/azuracast-podcast-art-regenerator`
 2. **Add repository description**: "Regenerate podcast episode artwork from media files using AzuraCast API"
 3. **Configure repository settings**:
    - Enable issues and discussions

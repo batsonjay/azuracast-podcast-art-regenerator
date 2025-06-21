@@ -33,7 +33,7 @@ This contributor agreement ensures that:
 
 1. **Fork the Repository**
    ```bash
-   git clone https://github.com/jabventures/azuracast-podcast-art-regenerator.git
+   git clone https://github.com/batsonjay/azuracast-podcast-art-regenerator.git
    cd azuracast-podcast-art-regenerator
    ```
 
@@ -119,7 +119,7 @@ All new JavaScript files should include this header:
 
 2. **Installation**
    ```bash
-   git clone https://github.com/jabventures/azuracast-podcast-art-regenerator.git
+   git clone https://github.com/batsonjay/azuracast-podcast-art-regenerator.git
    cd azuracast-podcast-art-regenerator
    npm install
    ```

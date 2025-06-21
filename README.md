@@ -23,7 +23,7 @@ A Node.js tool for regenerating podcast episode artwork from media files using t
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/jabventures/azuracast-podcast-art-regenerator.git
+git clone https://github.com/batsonjay/azuracast-podcast-art-regenerator.git
 cd azuracast-podcast-art-regenerator
 ```
 

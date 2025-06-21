@@ -24,11 +24,11 @@
   "description": "Regenerate podcast episode artwork from media files using AzuraCast API",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jabventures/azuracast-podcast-art-regenerator.git"
+    "url": "https://github.com/batsonjay/azuracast-podcast-art-regenerator.git"
   },
-  "homepage": "https://github.com/jabventures/azuracast-podcast-art-regenerator#readme",
+  "homepage": "https://github.com/batsonjay/azuracast-podcast-art-regenerator#readme",
   "bugs": {
-    "url": "https://github.com/jabventures/azuracast-podcast-art-regenerator/issues"
+    "url": "https://github.com/batsonjay/azuracast-podcast-art-regenerator/issues"
   },
   "bin": {
     "azuracast-podcast-art-regenerator": "./src/index.js"

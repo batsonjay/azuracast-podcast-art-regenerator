@@ -1,6 +1,6 @@
 # Open Source Preparation Summary
 
-This document summarizes the open-source preparation work completed for the Podcast Art Regenerator project.
+This document summarizes the open-source preparation work completed for the AzuraCast Podcast Art Regenerator project.
 
 ## Completed Tasks
 
@@ -55,7 +55,7 @@ This document summarizes the open-source preparation work completed for the Podc
 
 ### ✅ Project Restructuring
 - **Updated package.json** with:
-  - New project name: `podcast-art-regenerator`
+  - New project name: `azuracast-podcast-art-regenerator`
   - Proper author attribution: "JAB Ventures, Inc."
   - Repository URLs (placeholder for GitHub)
   - Keywords for discoverability
@@ -66,7 +66,7 @@ This document summarizes the open-source preparation work completed for the Podc
 ## Additional Open Source Recommendations
 
 ### 🔄 GitHub Repository Setup
-1. **Create GitHub repository** at `https://github.com/jabventures/podcast-art-regenerator`
+1. **Create GitHub repository** at `https://github.com/jabventures/azuracast-podcast-art-regenerator`
 2. **Add repository description**: "Regenerate podcast episode artwork from media files using AzuraCast API"
 3. **Configure repository settings**:
    - Enable issues and discussions

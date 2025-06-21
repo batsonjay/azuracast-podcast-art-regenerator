@@ -1,4 +1,4 @@
-# Podcast Art Regenerator
+# AzuraCast Podcast Art Regenerator
 
 A Node.js tool for regenerating podcast episode artwork from media files using the AzuraCast API. This tool helps recover missing episode artwork by extracting artwork from the original media files and uploading them to podcast episodes.
 
@@ -23,8 +23,8 @@ A Node.js tool for regenerating podcast episode artwork from media files using t
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/jabventures/podcast-art-regenerator.git
-cd podcast-art-regenerator
+git clone https://github.com/jabventures/azuracast-podcast-art-regenerator.git
+cd azuracast-podcast-art-regenerator
 ```
 
 2. Install dependencies:

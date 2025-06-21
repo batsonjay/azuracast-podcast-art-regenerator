@@ -1,6 +1,6 @@
-# Contributing to Podcast Art Regenerator
+# Contributing to AzuraCast Podcast Art Regenerator
 
-We welcome contributions to the Podcast Art Regenerator project! This document outlines the process for contributing and the requirements for submitting code.
+We welcome contributions to the AzuraCast Podcast Art Regenerator project! This document outlines the process for contributing and the requirements for submitting code.
 
 ## Contributor License Agreement
 
@@ -33,8 +33,8 @@ This contributor agreement ensures that:
 
 1. **Fork the Repository**
    ```bash
-   git clone https://github.com/jabventures/podcast-art-regenerator.git
-   cd podcast-art-regenerator
+   git clone https://github.com/jabventures/azuracast-podcast-art-regenerator.git
+   cd azuracast-podcast-art-regenerator
    ```
 
 2. **Create a Feature Branch**
@@ -119,8 +119,8 @@ All new JavaScript files should include this header:
 
 2. **Installation**
    ```bash
-   git clone https://github.com/jabventures/podcast-art-regenerator.git
-   cd podcast-art-regenerator
+   git clone https://github.com/jabventures/azuracast-podcast-art-regenerator.git
+   cd azuracast-podcast-art-regenerator
    npm install
    ```
 
@@ -139,7 +139,7 @@ All new JavaScript files should include this header:
 ## Project Structure
 
 ```
-podcast-art-regenerator/
+azuracast-podcast-art-regenerator/
 ├── src/
 │   ├── api/           # API client and related utilities
 │   ├── services/      # Core business logic services

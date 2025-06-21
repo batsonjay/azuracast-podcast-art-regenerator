@@ -1,5 +1,5 @@
 {
-  "name": "podcast-art-regenerator",
+  "name": "azuracast-podcast-art-regenerator",
   "version": "1.0.0",
   "main": "src/index.js",
   "scripts": {
@@ -24,14 +24,14 @@
   "description": "Regenerate podcast episode artwork from media files using AzuraCast API",
   "repository": {
     "type": "git",
-    "url": "https://github.com/jabventures/podcast-art-regenerator.git"
+    "url": "https://github.com/jabventures/azuracast-podcast-art-regenerator.git"
   },
-  "homepage": "https://github.com/jabventures/podcast-art-regenerator#readme",
+  "homepage": "https://github.com/jabventures/azuracast-podcast-art-regenerator#readme",
   "bugs": {
-    "url": "https://github.com/jabventures/podcast-art-regenerator/issues"
+    "url": "https://github.com/jabventures/azuracast-podcast-art-regenerator/issues"
   },
   "bin": {
-    "podcast-art-regenerator": "./src/index.js"
+    "azuracast-podcast-art-regenerator": "./src/index.js"
   },
   "engines": {
     "node": ">=14.0.0"

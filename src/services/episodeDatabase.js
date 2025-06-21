@@ -1,5 +1,7 @@
 /**
  * Episode database service using lowdb for persistent episode tracking
+ * Copyright (c) JAB Ventures, Inc., 2025
+ * Licensed under GPL v2
  */
 
 const { Low } = require('lowdb');

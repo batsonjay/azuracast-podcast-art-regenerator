@@ -1,400 +1,203 @@
-# Podcast Art Regeneration Tool
+# Podcast Art Regenerator
 
-A Node.js command-line application for recovering missing podcast episode artwork by extracting artwork from media files and uploading to AzuraCast episodes.
+A Node.js tool for regenerating podcast episode artwork from media files using the AzuraCast API. This tool helps recover missing episode artwork by extracting artwork from the original media files and uploading them to podcast episodes.
 
-## Table of Contents
+## Features
 
-- [Overview](#overview)
-- [Installation](#installation)
-- [Configuration](#configuration)
-- [Usage](#usage)
-- [Command Line Options](#command-line-options)
-- [Examples](#examples)
-- [Progress Tracking](#progress-tracking)
-- [Error Handling](#error-handling)
-- [Troubleshooting](#troubleshooting)
-- [API Integration](#api-integration)
+- **Automated Artwork Recovery**: Extract artwork from media files and upload to podcast episodes
+- **Batch Processing**: Process episodes in configurable batches with interactive prompts
+- **Progress Tracking**: Resume processing from where you left off
+- **Episode Database**: Persistent tracking of processed episodes
+- **Search Functionality**: Find and process specific episodes by title
+- **Dry Run Mode**: Test the process without making actual changes
+- **Interactive Setup**: Easy configuration wizard for first-time setup
+- **Comprehensive Logging**: Detailed logging with colored output
 
-## Overview
+## Prerequisites
 
-This tool addresses the specific issue where AzuraCast episode database records indicate `has_custom_art: true` but the actual artwork files are missing from the server. The application:
-
-1. **Ignores database flags** that incorrectly indicate episodes have artwork
-2. **Extracts artwork** from the original media files using AzuraCast's media API
-3. **Uploads fresh artwork** to each episode
-4. **Tracks progress** to allow resumption of large batch operations
-5. **Provides detailed logging** with colored output for easy monitoring
+- Node.js 14.0.0 or higher
+- AzuraCast instance with API access
+- Valid AzuraCast API key
 
 ## Installation
 
-### Prerequisites
-
-- Node.js 14+ 
-- npm or yarn
-- Access to AzuraCast API with valid API key
-- Station ID and Podcast ID
-
-### Setup
-
+1. Clone the repository:
 ```bash
-# Clone the repository
-git clone https://github.com/batsonjay/bfm-podcast-art-regeneration.git
-cd bfm-podcast-art-regeneration
-
-# Install dependencies
-npm install
-
-# Make the script executable (optional)
-chmod +x src/index.js
+git clone https://github.com/jabventures/podcast-art-regenerator.git
+cd podcast-art-regenerator
 ```
+
+2. Install dependencies:
+```bash
+npm install
+```
+
+3. Run the initialization wizard:
+```bash
+npm run init
+```
+
+The initialization wizard will guide you through:
+- Setting up your AzuraCast instance URL
+- Configuring your API key
+- Selecting your station and podcast
+- Setting default processing options
 
 ## Configuration
 
-### API Configuration
+The tool uses environment variables for configuration. After running the initialization wizard, a `.env` file will be created with your settings:
 
-Edit `src/utils/config.js` to configure your AzuraCast instance:
-
-```javascript
-const config = {
-  api: {
-    baseUrl: 'https://your-azuracast-instance.com',
-    apiKey: 'your-api-key-here'
-  },
-  stations: {
-    1: {
-      name: 'Production Station',
-      podcastId: 'your-podcast-id-here'
-    }
-  }
-};
+```env
+AZURACAST_URL=https://your-azuracast-instance.com
+API_KEY=your-api-key-here
+STATION_ID=1
+PODCAST_ID=your-podcast-id
+DEFAULT_BATCH_SIZE=50
 ```
 
-### Required Information
+### Getting Your API Key
 
-- **API Key**: Your AzuraCast API key (format: `key:secret`)
-- **Station ID**: Numeric ID of your station (typically 1 for production)
-- **Podcast ID**: UUID of the podcast to process
+1. Log into your AzuraCast instance
+2. Go to your user profile
+3. Generate an API key
+4. Copy the key for use in the configuration
+
+For more information, see the [AzuraCast API Documentation](https://www.azuracast.com/docs/developers/apis/).
 
 ## Usage
 
-### Basic Syntax
+### Basic Commands
 
 ```bash
-node src/index.js [OPTIONS]
-```
+# Start processing episodes
+npm start
 
-### Quick Start
+# Initialize configuration (first-time setup)
+npm run init
 
-```bash
-# Process episodes with default settings (50 per batch)
-node src/index.js --station-id 1
+# Test run without uploading artwork
+npm run test
 
-# Process with smaller batches for testing
-node src/index.js --station-id 1 --batch-size 5
+# Resume from saved progress
+npm run resume
 
-# Dry run to test without uploading
-node src/index.js --station-id 1 --batch-size 5 --dry-run
-```
-
-## Command Line Options
-
-### Required Options
-
-| Option | Description | Example |
-|--------|-------------|---------|
-| `-s, --station-id <number>` | Station ID (1=production, 2=test) | `--station-id 1` |
-
-### Optional Options
-
-| Option | Description | Default | Example |
-|--------|-------------|---------|---------|
-| `-b, --batch-size <number>` | Episodes per batch | 50 | `--batch-size 10` |
-| `-p, --start-page <number>` | Starting page number | 1 | `--start-page 5` |
-| `-d, --dry-run` | Test run without uploading | false | `--dry-run` |
-| `-r, --resume` | Resume from saved progress | false | `--resume` |
-| `--reset` | Reset progress and start fresh | false | `--reset` |
-| `-v, --verbose` | Enable verbose logging | false | `--verbose` |
-| `--force` | Process episodes even if they have custom art | false | `--force` |
-| `--search-title <string>` | Search for and process a single episode by title substring | none | `--search-title "Episode 100"` |
-
-### Help
-
-```bash
-node src/index.js --help
-```
-
-## Examples
-
-### Basic Operations
-
-```bash
-# Start processing from the beginning
-node src/index.js --station-id 1
-
-# Resume previous processing session
-node src/index.js --station-id 1 --resume
-
-# Process with verbose logging
-node src/index.js --station-id 1 --verbose
-
-# Test with dry run (no actual uploads)
-node src/index.js --station-id 1 --batch-size 5 --dry-run
+# Reset progress and start fresh
+npm run reset
 ```
 
 ### Advanced Usage
 
 ```bash
-# Reset progress and start fresh
-node src/index.js --station-id 1 --reset
+# Process with custom batch size
+npm start -- --batch-size 25
 
-# Start from a specific page
-node src/index.js --station-id 1 --start-page 10
+# Search for specific episode
+npm start -- --search-title "episode name"
 
-# Force processing even if episodes claim to have artwork
-node src/index.js --station-id 1 --force
+# Dry run mode (no uploads)
+npm start -- --dry-run
 
-# Combine options for testing
-node src/index.js --station-id 1 --batch-size 3 --dry-run --verbose
+# Force processing (ignore existing artwork)
+npm start -- --force
+
+# Verbose logging
+npm start -- --verbose
+
+# Start from specific page
+npm start -- --start-page 5
 ```
 
-### Episode Search and Individual Processing
+### Command Line Options
 
-```bash
-# Search for episodes containing "Episode 100" in the title
-node src/index.js --station-id 1 --search-title "Episode 100"
+- `--batch-size <number>`: Episodes per batch (default: 50)
+- `--start-page <number>`: Starting page number (default: 1)
+- `--dry-run`: Test run without uploading artwork
+- `--resume`: Resume from saved progress
+- `--reset`: Reset progress and start fresh
+- `--verbose`: Enable verbose logging
+- `--force`: Process episodes even if they have custom art
+- `--search-title <string>`: Search for specific episode by title
+- `--initialize`: Run configuration wizard
 
-# Search with dry run to test without uploading
-node src/index.js --station-id 1 --search-title "Christmas Special" --dry-run
+## How It Works
 
-# Search with verbose logging for detailed output
-node src/index.js --station-id 1 --search-title "Interview" --verbose
+1. **Connects to AzuraCast API**: Uses your API key to authenticate
+2. **Fetches Episode List**: Retrieves episodes from your specified podcast
+3. **Extracts Artwork**: Downloads artwork from the original media files
+4. **Uploads to Episodes**: Applies the extracted artwork to podcast episodes
+5. **Tracks Progress**: Saves progress to resume later if needed
 
-# Search and force processing even if episode has artwork
-node src/index.js --station-id 1 --search-title "Bonus" --force
-```
+## Interactive Processing
 
-## Interactive Prompts
+The tool provides interactive prompts during processing:
 
-The application provides interactive prompts during execution:
+- **Batch Confirmation**: Confirm before processing each batch
+- **Batch Size Adjustment**: Change batch size between batches
+- **Episode Confirmation**: Confirm individual episodes when searching
+- **Error Handling**: Choose how to handle errors during processing
 
-### First Batch Prompt
-```
-📋 Ready to start processing from page 1/145
-📄 First batch will process 50 episodes
+## Data Storage
 
-How many episodes for first batch? (default: 50): 
-```
+The tool creates a `data/` directory with:
 
-### Continuation Prompt
-```
-✅ Batch 1 completed
-📊 Progress: 1/145 pages
-📈 Total: 5 success, 0 failed, 0 skipped
-
-Continue? (y)es, (n)o, (p)ause: 
-```
-
-### Batch Size Prompt
-```
-How many episodes for next batch? (default: 50): 
-```
-
-### Episode Search Confirmation Prompt
-```
-🎯 Found episode: "Episode 100 - Special Interview"
-📅 Published: 2023-12-01T10:00:00Z
-🆔 Episode ID: abc123-def456-ghi789
-
-Process this episode? (y/n): 
-```
-
-## Progress Tracking
-
-### Automatic Progress Saving
-
-- Progress is automatically saved after each episode
-- Application can be safely interrupted (Ctrl+C)
-- Resume from where you left off using `--resume` or automatic detection
-
-### Progress File Location
-
-```
-data/progress.json
-```
-
-### Progress Information
-
-The progress file tracks:
-- Episodes processed and their status
-- Current page and batch size
-- Success/failure/skip counts
-- Processing timestamps
-
-### Resume Behavior
-
-```bash
-# Automatic resume (recommended)
-node src/index.js --station-id 1
-
-# Explicit resume
-node src/index.js --station-id 1 --resume
-
-# Reset and start over
-node src/index.js --station-id 1 --reset
-```
-
-## Output Format
-
-### Episode Processing
-
-```
-📄 Processing page 1/145 (50 episodes)
-🔄 Processing: Episode Title (processing; extracting artwork from media file)
-🔄 Processing: Another Episode (skipped; already processed)
-ℹ️  Batch 1 complete: 1 success, 0 failed, 1 skipped
-```
-
-### Color Coding
-
-- **Magenta**: Page processing headers
-- **Cyan**: Individual episode processing
-- **Green**: Success messages
-- **Red**: Error messages
-- **Yellow**: Warning messages
-- **Blue**: Information messages
-
-### Status Messages
-
-| Status | Meaning |
-|--------|---------|
-| `(processing; extracting artwork from media file)` | Episode is being processed |
-| `(skipped; already processed)` | Episode was processed in previous run |
-| `(failed; No artwork data received)` | Could not extract artwork from media file |
-| `(failed; Upload failed)` | Artwork extraction succeeded but upload failed |
-
-## Error Handling
-
-### Common Errors
-
-| Error | Cause | Solution |
-|-------|-------|----------|
-| `Failed to connect to API` | Invalid API key or URL | Check configuration |
-| `No playlist_media_id found` | Episode has no associated media file | Skip episode |
-| `No artwork data received` | Media file has no embedded artwork | Skip episode |
-| `Upload failed` | Network or server error | Retry or check logs |
-
-### Verbose Logging
-
-Enable verbose logging to see detailed information:
-
-```bash
-node src/index.js --station-id 1 --verbose
-```
-
-### Log Files
-
-Application logs are written to console. To save logs:
-
-```bash
-node src/index.js --station-id 1 2>&1 | tee processing.log
-```
+- `progress.json`: Processing progress and resume information
+- `episodes.json`: Database of processed episodes with status
 
 ## Troubleshooting
 
-### Application Won't Start
+### Common Issues
 
-1. **Check Node.js version**: `node --version` (requires 14+)
-2. **Install dependencies**: `npm install`
-3. **Check configuration**: Verify API key and station ID
+1. **API Connection Failed**
+   - Verify your AzuraCast URL is correct
+   - Check that your API key is valid
+   - Ensure your AzuraCast instance is accessible
 
-### API Connection Issues
+2. **No Episodes Found**
+   - Verify the podcast ID is correct
+   - Check that the podcast has episodes
+   - Ensure your API key has access to the station
 
-1. **Test API manually**: Visit `https://your-station.com/docs/api/`
-2. **Verify API key**: Check format is `key:secret`
-3. **Check network**: Ensure server is accessible
+3. **Artwork Upload Failed**
+   - Check that the media files have embedded artwork
+   - Verify API permissions for uploading
+   - Try with a smaller batch size
 
-### Processing Issues
+### Getting Help
 
-1. **Use dry run**: Test with `--dry-run` flag
-2. **Start small**: Use `--batch-size 1` for testing
-3. **Check verbose logs**: Use `--verbose` flag
-4. **Reset progress**: Use `--reset` if progress is corrupted
+- Check the [AzuraCast API Documentation](https://www.azuracast.com/docs/developers/apis/)
+- Review the verbose logs with `--verbose` flag
+- Open an issue on GitHub for bugs or feature requests
 
-### Performance Issues
+## Contributing
 
-1. **Reduce batch size**: Use smaller `--batch-size`
-2. **Monitor memory**: Large batches may use more memory
-3. **Check network**: Slow uploads may timeout
+We welcome contributions! Please see our [Contributing Guidelines](CONTRIBUTING.md) for details.
 
-## API Integration
+### Contributor License Agreement
 
-### AzuraCast API Endpoints Used
-
-| Endpoint | Purpose |
-|----------|---------|
-| `GET /api/station/{id}/podcast/{podcast_id}/episodes` | Fetch episode list |
-| `GET /api/station/{id}/art/{media_id}.jpg` | Download media artwork |
-| `POST /api/station/{id}/podcast/{podcast_id}/episode/{episode_id}/art` | Upload episode artwork |
-
-### Authentication
-
-Uses API key authentication in header:
-```
-X-API-Key: your-api-key-here
-```
-
-### Rate Limiting
-
-The application processes episodes sequentially to avoid overwhelming the API. No built-in rate limiting is implemented.
-
-## Development
-
-### Project Structure
-
-```
-src/
-├── api/
-│   └── client.js          # AzuraCast API client
-├── services/
-│   ├── podcast.js         # Episode processing logic
-│   └── progress.js        # Progress tracking
-├── utils/
-│   ├── config.js          # Configuration management
-│   └── logger.js          # Colored logging utilities
-└── index.js               # Main application entry point
-```
-
-### Adding New Features
-
-1. **API methods**: Add to `src/api/client.js`
-2. **Processing logic**: Modify `src/services/podcast.js`
-3. **Configuration**: Update `src/utils/config.js`
-4. **Logging**: Use methods from `src/utils/logger.js`
+By contributing to this project, you agree to assign copyright of your contributions to JAB Ventures, Inc. This ensures the project can be maintained and distributed under a consistent license.
 
 ## License
 
-This project is licensed under the MIT License.
+This project is licensed under the GNU General Public License v2.0 - see the [LICENSE](LICENSE) file for details.
+
+## Copyright
+
+Copyright (c) JAB Ventures, Inc., 2025
+
+## Acknowledgments
+
+- Built for use with [AzuraCast](https://www.azuracast.com/)
+- Inspired by the need to recover missing podcast artwork
+- Thanks to the AzuraCast community for API documentation and support
 
 ## Support
 
-For issues and questions:
+For support, please:
 
-1. **Check this README** for common solutions
-2. **Review logs** with `--verbose` flag
-3. **Test with dry run** using `--dry-run`
-4. **Create GitHub issue** with detailed error information
+1. Check the troubleshooting section above
+2. Review the [AzuraCast documentation](https://www.azuracast.com/docs/)
+3. Open an issue on GitHub with detailed information about your problem
 
-## Version History
+---
 
-- **v1.1.0**: Added episode search functionality
-  - New `--search-title` option for finding episodes by title substring
-  - Individual episode processing with confirmation prompts
-  - Search across all episodes with progress indicators
-  - Compatible with existing dry-run, verbose, and force options
-
-- **v1.0.0**: Initial release with full artwork recovery functionality
-  - Batch processing with user prompts
-  - Progress tracking and resumption
-  - Comprehensive error handling
-  - AzuraCast API integration
-  - Production-ready for 700+ episodes
+**Note**: This tool is designed to work with AzuraCast instances and requires appropriate API access. Always test with the `--dry-run` option first to ensure the tool works correctly with your setup.

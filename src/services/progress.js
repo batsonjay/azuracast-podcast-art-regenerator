@@ -1,5 +1,7 @@
 /**
- * Progress tracking service for podcast art regeneration
+ * Progress tracking service for podcast episode processing
+ * Copyright (c) JAB Ventures, Inc., 2025
+ * Licensed under GPL v2
  */
 
 const fs = require('fs').promises;

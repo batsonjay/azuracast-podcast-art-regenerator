@@ -2,15 +2,18 @@
 
 /**
  * Main entry point for podcast art regeneration tool
+ * Copyright (c) JAB Ventures, Inc., 2025
+ * Licensed under GPL v2
  */
 
 const { Command } = require('commander');
 const Logger = require('./utils/logger');
-const { config, getStationConfig, validateConfig } = require('./utils/config');
+const { config, getStationConfig, validateConfig, isConfigured } = require('./utils/config');
 const ApiClient = require('./api/client');
 const ProgressTracker = require('./services/progress');
 const EpisodeDatabase = require('./services/episodeDatabase');
 const PodcastService = require('./services/podcast');
+const InitializationService = require('./services/initialization');
 
 // Initialize CLI
 const program = new Command();
@@ -21,7 +24,6 @@ program
   .version('1.0.0');
 
 program
-  .option('-s, --station-id <number>', 'Station ID (1=production, 2=test)', config.processing.defaultStationId)
   .option('-b, --batch-size <number>', 'Episodes per batch', config.processing.defaultBatchSize)
   .option('-p, --start-page <number>', 'Starting page number', 1)
   .option('-d, --dry-run', 'Test run without uploading artwork', false)
@@ -29,7 +31,8 @@ program
   .option('--reset', 'Reset progress and start fresh', false)
   .option('-v, --verbose', 'Enable verbose logging', false)
   .option('--force', 'Process episodes even if they already have custom art', false)
-  .option('--search-title <string>', 'Search for and process a single episode by title substring');
+  .option('--search-title <string>', 'Search for and process a single episode by title substring')
+  .option('--initialize', 'Initialize configuration for first-time setup', false);
 
 /**
  * Prompt user for confirmation to process a found episode
@@ -150,16 +153,33 @@ async function main() {
   const logger = new Logger(options.verbose);
   
   try {
+    // Handle initialization
+    if (options.initialize) {
+      const apiClient = new ApiClient(logger);
+      const initService = new InitializationService(apiClient, logger);
+      await initService.initialize();
+      return;
+    }
+
+    // Check if configuration exists
+    if (!isConfigured()) {
+      logger.error('Configuration not found or incomplete.');
+      logger.info('Run with --initialize to set up the tool for first use.');
+      logger.info('');
+      logger.info('Example: npm run start -- --initialize');
+      process.exit(1);
+    }
+
     // Validate configuration
     validateConfig();
     
     // Parse options
-    const stationId = parseInt(options.stationId);
     const batchSize = parseInt(options.batchSize);
     const startPage = parseInt(options.startPage);
     
     // Get station configuration
-    const stationConfig = getStationConfig(stationId);
+    const stationConfig = getStationConfig();
+    const stationId = stationConfig.id;
     
     logger.info(`Podcast Art Regeneration Tool`);
     logger.info(`Station: ${stationConfig.name} (ID: ${stationId})`);
@@ -180,6 +200,7 @@ async function main() {
     const connectionOk = await apiClient.testConnection(stationId);
     if (!connectionOk) {
       logger.error('Failed to connect to API. Please check your configuration.');
+      logger.info('Try running --initialize to reconfigure the tool.');
       process.exit(1);
     }
     logger.success('API connection successful');

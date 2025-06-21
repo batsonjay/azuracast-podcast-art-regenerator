@@ -1,5 +1,7 @@
 /**
  * API client for AzuraCast with authentication and retry logic
+ * Copyright (c) JAB Ventures, Inc., 2025
+ * Licensed under GPL v2
  */
 
 const axios = require('axios');
@@ -173,16 +175,36 @@ class ApiClient {
   }
 
   /**
+   * Make a generic API request
+   * @param {string} endpoint - API endpoint (without base URL)
+   * @param {Object} options - Axios request options
+   * @returns {Promise<Object>} API response
+   */
+  async makeRequest(endpoint, options = {}) {
+    return this.withRetry(async () => {
+      const response = await this.client.get(endpoint, options);
+      return response;
+    });
+  }
+
+  /**
    * Test API connectivity and authentication
    * @param {number} stationId - Station ID to test with
    * @returns {Promise<boolean>} True if connection successful
    */
-  async testConnection(stationId) {
+  async testConnection(stationId = null) {
     try {
-      await this.getPodcasts(stationId);
+      if (stationId) {
+        await this.getPodcasts(stationId);
+      } else {
+        // Test basic connectivity
+        await this.makeRequest('/stations');
+      }
       return true;
     } catch (error) {
-      this.logger.error('API connection test failed', error);
+      if (this.logger) {
+        this.logger.error('API connection test failed', error);
+      }
       return false;
     }
   }

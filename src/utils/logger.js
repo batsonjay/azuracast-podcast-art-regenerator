@@ -1,5 +1,7 @@
 /**
- * Logging utilities with colored output
+ * Logging utility with colored output
+ * Copyright (c) JAB Ventures, Inc., 2025
+ * Licensed under GPL v2
  */
 
 const chalk = require('chalk');

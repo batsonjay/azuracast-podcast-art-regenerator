@@ -1,35 +1,32 @@
 /**
  * Configuration management for podcast art regeneration
+ * Copyright (c) JAB Ventures, Inc., 2025
+ * Licensed under GPL v2
  */
+
+// Load environment variables
+require('dotenv').config();
 
 const config = {
   // API Configuration
   api: {
-    baseUrl: 'https://radio.balearic-fm.com/api',
-    key: process.env.API_KEY || '452ea24b5bcae87e:3d6677706dd2a0355c6eedd5ed70677b',
+    baseUrl: process.env.AZURACAST_URL ? `${process.env.AZURACAST_URL}/api` : null,
+    key: process.env.API_KEY,
     timeout: 30000, // 30 seconds
     retryAttempts: 3,
     retryDelay: 1000 // 1 second base delay
   },
 
   // Station Configuration
-  stations: {
-    production: {
-      id: 1,
-      podcastId: '1eee034e-345c-6a8e-aaf3-ad260532e878',
-      name: 'Balearic FM Production'
-    },
-    test: {
-      id: 2,
-      podcastId: '1f04d545-8949-6f80-9f25-3bdce09225f3',
-      name: 'Balearic FM Test/Dev'
-    }
+  station: {
+    id: process.env.STATION_ID ? parseInt(process.env.STATION_ID) : null,
+    podcastId: process.env.PODCAST_ID || null,
+    name: null // Will be discovered during initialization
   },
 
   // Processing Configuration
   processing: {
-    defaultBatchSize: 50,
-    defaultStationId: 2, // Start with test station for safety
+    defaultBatchSize: process.env.DEFAULT_BATCH_SIZE ? parseInt(process.env.DEFAULT_BATCH_SIZE) : 50,
     progressFile: './data/progress.json',
     tempDir: './temp',
     maxConcurrent: 3 // Max concurrent downloads
@@ -48,16 +45,14 @@ const config = {
 };
 
 /**
- * Get station configuration by ID
- * @param {number} stationId - Station ID (1 or 2)
+ * Get station configuration
  * @returns {Object} Station configuration
  */
-function getStationConfig(stationId) {
-  const station = stationId === 1 ? config.stations.production : config.stations.test;
-  if (!station) {
-    throw new Error(`Invalid station ID: ${stationId}. Must be 1 (production) or 2 (test)`);
+function getStationConfig() {
+  if (!config.station.id) {
+    throw new Error('Station ID not configured. Run with --initialize to set up configuration.');
   }
-  return station;
+  return config.station;
 }
 
 /**
@@ -66,16 +61,33 @@ function getStationConfig(stationId) {
  */
 function validateConfig() {
   if (!config.api.key) {
-    throw new Error('API key is required. Set API_KEY environment variable or update config.');
+    throw new Error('API key is required. Run with --initialize to set up configuration.');
   }
   
   if (!config.api.baseUrl) {
-    throw new Error('API base URL is required.');
+    throw new Error('AzuraCast URL is required. Run with --initialize to set up configuration.');
   }
+  
+  if (!config.station.id) {
+    throw new Error('Station ID is required. Run with --initialize to set up configuration.');
+  }
+  
+  if (!config.station.podcastId) {
+    throw new Error('Podcast ID is required. Run with --initialize to set up configuration.');
+  }
+}
+
+/**
+ * Check if configuration is initialized
+ * @returns {boolean} True if basic configuration exists
+ */
+function isConfigured() {
+  return !!(config.api.key && config.api.baseUrl && config.station.id && config.station.podcastId);
 }
 
 module.exports = {
   config,
   getStationConfig,
-  validateConfig
+  validateConfig,
+  isConfigured
 };

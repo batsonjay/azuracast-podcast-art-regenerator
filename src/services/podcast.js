@@ -1,5 +1,7 @@
 /**
  * Podcast episode processing service
+ * Copyright (c) JAB Ventures, Inc., 2025
+ * Licensed under GPL v2
  */
 
 const { getStationConfig } = require('../utils/config');

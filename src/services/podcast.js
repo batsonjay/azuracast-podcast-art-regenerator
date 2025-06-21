@@ -185,6 +185,10 @@ class PodcastService {
           this.logger.info(`Total episodes in podcast: ${episodesResponse.total}`);
         }
 
+        // Calculate correct total pages based on current batch size and total episodes
+        const calculatedTotalPages = Math.ceil(episodesResponse.total / batchSize);
+        this.logger.verbose(`API reports ${episodesResponse.total_pages} pages, calculated ${calculatedTotalPages} pages for batch size ${batchSize}`);
+
         // Update current page in progress
         this.progress.updateCurrentPage(currentPage);
 
@@ -192,7 +196,7 @@ class PodcastService {
         if (onBatchComplete && isFirstBatch) {
           const shouldContinue = await onBatchComplete({
             page: currentPage,
-            totalPages: episodesResponse.total_pages,
+            totalPages: calculatedTotalPages,
             episodesToProcess: episodesResponse.rows.length,
             totalResults: {
               processed: totalProcessed,
@@ -228,7 +232,7 @@ class PodcastService {
 
         // Use magenta color for page processing to distinguish from individual episodes
         const chalk = require('chalk');
-        console.log(chalk.magenta('📄 Processing page ' + currentPage + '/' + episodesResponse.total_pages + ' (' + episodesResponse.rows.length + ' episodes)'));
+        console.log(chalk.magenta('📄 Processing page ' + currentPage + '/' + calculatedTotalPages + ' (' + episodesResponse.rows.length + ' episodes)'));
 
         // Process batch
         const batchResults = await this.processBatch(stationId, podcastId, episodesResponse.rows, dryRun, force);
@@ -246,7 +250,7 @@ class PodcastService {
         if (onBatchComplete) {
           const batchResponse = await onBatchComplete({
             page: currentPage,
-            totalPages: episodesResponse.total_pages,
+            totalPages: calculatedTotalPages,
             batchResults,
             totalResults: {
               processed: totalProcessed,
@@ -276,7 +280,10 @@ class PodcastService {
         }
 
         // Check if we've processed all pages
-        if (currentPage >= episodesResponse.total_pages) {
+        // Use a more robust check: if no episodes returned or we've processed all episodes
+        if (currentPage >= calculatedTotalPages || 
+            !episodesResponse.rows || 
+            episodesResponse.rows.length === 0) {
           this.logger.info('All pages processed');
           break;
         }
@@ -299,9 +306,23 @@ class PodcastService {
             }
           });
 
-          if (!shouldContinue) {
-            this.logger.info('Processing aborted due to error');
-            break;
+          if (typeof shouldContinue === 'boolean') {
+            if (!shouldContinue) {
+              this.logger.info('Processing aborted due to error');
+              break;
+            }
+          } else if (typeof shouldContinue === 'object') {
+            if (!shouldContinue.continue) {
+              this.logger.info('Processing aborted due to error');
+              break;
+            }
+            // Update batch size if provided (useful for batch size errors)
+            if (shouldContinue.newBatchSize && shouldContinue.newBatchSize !== batchSize) {
+              batchSize = shouldContinue.newBatchSize;
+              this.logger.info(`Batch size changed to ${batchSize} episodes`);
+              // Don't increment page, retry with new batch size
+              continue;
+            }
           }
         } else {
           // If no callback, continue to next page
